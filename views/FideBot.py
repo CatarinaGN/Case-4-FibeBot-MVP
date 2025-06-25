@@ -30,6 +30,26 @@ if "current_chat_id" not in st.session_state:
 
 st.markdown("<h1 style='text-align: center;'>🤖 FideBot</h1>", unsafe_allow_html=True)
 
+st.warning("""
+⚠️ Este chatbot utiliza a **versão gratuita online do Langflow** hospedada no Astra DataStax, que pode apresentar lentidão ou instabilidade.
+
+💡 Para uma performance muito superior, considere rodar a **versão local via Docker**, ou utilizar uma versão paga.
+
+Langflow **não cobra diretamente pelo uso do Playground** via Astra, mas o que acontece é:
+- A infraestrutura da **DataStax Astra é gratuita com limites** (por ex: conexões lentas, tempo de resposta maior).
+- Langflow Cloud (própria) está em desenvolvimento/early access — o foco é que futuramente eles ofereçam instâncias pagas com:
+  - Diminuição de Latência 
+  - Modelos personalizados
+  - Acesso escalável
+
+👉 Atualmente, se quiser rodar com desempenho real, o **melhor caminho** é:
+
+- **Rodar localmente com Docker**
+- **Hospedar o Langflow (ex: render.com, AWS, etc.)**
+           
+""")
+
+
 # --- Carregar lista de chats ---
 chats_response = supabase.from_("chats").select("*").eq("user_email", user_email).eq("archived", False).order("created_at", desc=True).execute()
 chat_list = chats_response.data if chats_response.data else []
@@ -105,47 +125,48 @@ from urllib.parse import urlencode
 
 @trace(
     name="FideBot LLM Call",
-    metadata={"source": "fidebot", "model": "langflow-docker-local"}
+    metadata={"source": "fidebot", "model": "langflow-online-astra"}
 )
-def process_user_input(user_input: str) -> str:
-    url = "http://localhost:7860/api/v1/run/c98ac3ec-d8e7-40c1-a8c4-775661f756a5"  # Docker Langflow endpoint!!! chamge this (the online version was much slower)
+def process_user_input(user_input: str, session_id: str) -> str:
+    url = "https://api.langflow.astra.datastax.com/lf/84ff11d6-f983-4f56-8b88-4a6e7baca1f8/api/v1/run/4bfc1d6b-10d1-4434-b59c-c7428d33e41a?stream=false"
 
     payload = {
         "input_value": user_input,
         "output_type": "chat",
-        "input_type": "chat"
-    }
+        "input_type": "chat",
+        "session_id": session_id  # Important: isolate sessions
+        }
 
     headers = {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {langflow_key}"
     }
 
     try:
-        start_time = datetime.datetime.now()
-        response = requests.post(url, json=payload, headers=headers)
+        response = requests.post(url, json=payload, headers=headers, timeout=300)
         response.raise_for_status()
-        output = response.json()
-        end_time = datetime.datetime.now()
 
-        bot_reply = output["outputs"][0]["outputs"][0]["results"]["message"]["text"]
+        data = response.json()
+        print("🌐 Raw response from Langflow:", data)
 
-        # --- Token & Cost Estimation (GPT-4o 2024) ---
-        prompt_tokens = len(user_input.split())
-        completion_tokens = len(bot_reply.split())
-        total_tokens = prompt_tokens + completion_tokens
+        # Try multiple paths depending on structure
+        try:
+            # Most expected structure
+            bot_reply = data["outputs"][0]["outputs"][0]["results"]["message"]["text"]
+        except (KeyError, IndexError):
+            try:
+                # Alternate possible structure
+                bot_reply = data["outputs"][0]["results"]["message"]["text"]
+            except (KeyError, IndexError):
+                # Fallback to raw JSON
+                bot_reply = json.dumps(data)
 
-        # Pricing (per 1M tokens) for GPT-4o (Batch API):
-        input_price_per_token = 1.09852 / 1_000_000
-        output_price_per_token = 4.3941 / 1_000_000
-
-        estimated_cost = (prompt_tokens * input_price_per_token) + (completion_tokens * output_price_per_token)
-
-        print(f"📊 Prompt Tokens: {prompt_tokens}")
-        print(f"📊 Completion Tokens: {completion_tokens}")
-        print(f"💰 Estimated Cost: €{estimated_cost:.6f}")
-
+    except requests.exceptions.Timeout:
+        bot_reply = "⏳ O servidor demorou muito para responder. Tente novamente em instantes."
+    except requests.exceptions.RequestException as e:
+        bot_reply = f"❌ Erro ao comunicar com o Langflow: {str(e)}"
     except Exception as e:
-        bot_reply = f"❌ Erro: {e}"
+        bot_reply = f"❌ Erro inesperado: {str(e)}"
 
     return bot_reply
 
@@ -164,7 +185,8 @@ if user_input := st.chat_input("Digite sua mensagem..."):
         with st.chat_message("user"):
             st.markdown(user_input)
 
-        bot_reply = process_user_input(user_input)
+        with st.spinner("🤖 Processando sua pergunta..."):
+            bot_reply = process_user_input(user_input, session_id=chat_id)
 
         supabase.from_("messages").insert({
             "id": str(uuid4()),

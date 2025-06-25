@@ -83,6 +83,8 @@ def main_app(user_email):
     with st.sidebar:
         st.logo("assets/logo.png", size="large")
         st.text("Made by Group P for Business Cases with Data Science course from NOVA IMS")
+        st.markdown("### Acesso alternativo ao FideBot (Playground do Langflow)")
+        st.markdown("[Abrir FideBot Playground 🚀](https://astra.datastax.com/langflow/2d0754d9-5a56-4019-a8ff-4d3a185fc195/playground/4bfc1d6b-10d1-4434-b59c-c7428d33e41a)")
 
         # Push logout button to bottom using custom CSS
         st.markdown(

@@ -107,6 +107,12 @@ with tab2:
     else:
         st.info("Ainda não guardaste nenhuma nota.")
 
+st.info("""
+🔒 O chatbot FideBot está hospedado externamente.  
+A versão atual está disponível através do link abaixo, e na aba do Fidebot nesta interface, mas a integração direta só funciona com instalação local ou Docker.
+
+👉 [Abrir FideBot Playground noutra aba](https://astra.datastax.com/langflow/2d0754d9-5a56-4019-a8ff-4d3a185fc195/playground/4bfc1d6b-10d1-4434-b59c-c7428d33e41a)
+""")
 
 components.html("""
     <script src="https://cdn.jsdelivr.net/gh/logspace-ai/langflow-embedded-chat@v1.0.7/dist/build/static/js/bundle.min.js"></script>
