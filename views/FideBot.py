@@ -113,7 +113,7 @@ if chat_id:
 
 # --- Função para processar entrada ---
 from langwatch import trace
-import sseclient
+
 #@trace(
 #    name="FideBot LLM Call",
 #    metadata={"source": "fidebot", "model": "gpt-4o-2024-1120"}
