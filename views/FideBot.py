@@ -30,6 +30,13 @@ if "current_chat_id" not in st.session_state:
 
 st.markdown("<h1 style='text-align: center;'>🤖 FideBot</h1>", unsafe_allow_html=True)
 
+st.info("""
+🔒 O chatbot FideBot está hospedado externamente, mas esta versão pode ser um bocado lenta tendo em contas as razões referidas abaixo. 
+A versão atual está disponível também através do link abaixo ou para maior velocidade com instalação local ou Docker.
+
+👉 [Abrir FideBot Playground noutra aba](https://astra.datastax.com/langflow/2d0754d9-5a56-4019-a8ff-4d3a185fc195/playground/4bfc1d6b-10d1-4434-b59c-c7428d33e41a)
+""")
+
 st.warning("""
 ⚠️ Este chatbot utiliza a **versão gratuita online do Langflow** hospedada no Astra DataStax, que pode apresentar lentidão ou instabilidade.
 
