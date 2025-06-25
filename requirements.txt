@@ -1,0 +1,7 @@
+streamlit
+requests
+python-dotenv
+supabase
+langwatch
+streamlit-authenticator
+pandas
